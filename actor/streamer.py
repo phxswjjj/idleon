@@ -15,9 +15,8 @@ class StreamWidget(tkinter.Canvas):
         self.image = image
         resize_img = self.image.resize(
             (new_width, new_height), Image.ANTIALIAS)
-        pimg = ImageTk.PhotoImage(image=resize_img)
-        self.photo = pimg
-        self.create_image(0, 0, image=pimg, anchor=tkinter.NW)
+        self.photo = ImageTk.PhotoImage(image=resize_img)
+        self.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
 
         self.bind('<Configure>', self.on_resize)
 
@@ -27,9 +26,8 @@ class StreamWidget(tkinter.Canvas):
 
         resize_img = self.image.resize(
             (new_width, new_height), Image.ANTIALIAS)
-        pimg = ImageTk.PhotoImage(image=resize_img)
-        self.photo = pimg
-        self.create_image(0, 0, image=pimg, anchor=tkinter.NW)
+        self.photo = ImageTk.PhotoImage(image=resize_img)
+        self.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
 
 
 class App():
