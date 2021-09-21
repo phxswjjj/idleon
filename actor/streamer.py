@@ -1,6 +1,7 @@
 import tkinter
 from ctypes import windll
 
+import win32con
 import win32gui
 import win32ui
 from PIL import Image, ImageTk
@@ -49,16 +50,27 @@ class StreamWidget(tkinter.Canvas):
             return None
 
         hwnd = self.hwnd
-        left, top, right, bot = win32gui.GetWindowRect(hwnd)
-        w = right - left
-        h = bot - top
-        hwndDC = win32gui.GetWindowDC(hwnd)
+        
+        l, t, r, b   = win32gui.GetClientRect(hwnd)
+        sl, st, _, _ = win32gui.GetWindowRect(hwnd)
+        cl, ct       = win32gui.ClientToScreen(hwnd, (l, t))
+
+        size     = (r - l, b - t)
+        position = (cl - sl, ct - st)
+
+        # too small
+        if size[1] < 100:
+            return None
+
+        hwndDC = win32gui.GetDC(hwnd)
         mfcDC = win32ui.CreateDCFromHandle(hwndDC)
         saveDC = mfcDC.CreateCompatibleDC()
         saveBitMap = win32ui.CreateBitmap()
-        saveBitMap.CreateCompatibleBitmap(mfcDC, w, h)
+        saveBitMap.CreateCompatibleBitmap(mfcDC, *size)
         saveDC.SelectObject(saveBitMap)
-        result = windll.user32.PrintWindow(hwnd, saveDC.GetSafeHdc(), 0)
+
+        saveDC.BitBlt((0, 0), size, mfcDC, position, win32con.SRCCOPY)
+        saveDC.SelectObject(saveBitMap)
 
         bmpinfo = saveBitMap.GetInfo()
         bmpstr = saveBitMap.GetBitmapBits(True)
@@ -72,10 +84,7 @@ class StreamWidget(tkinter.Canvas):
         saveDC.DeleteDC()
         mfcDC.DeleteDC()
         win32gui.ReleaseDC(hwnd, hwndDC)
-        if result:
-            return im
-        else:
-            return None
+        return im
 
 
 class App():
@@ -91,8 +100,6 @@ class App():
                               target_win_title=target_win_title)
         widget.pack(fill='both', expand=True)
         self.widgets.append(widget)
-
-        # widget.update_image(Image.open('./resources/cat.jpg'))
 
     def show(self):
         window = self.window
