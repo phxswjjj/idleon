@@ -79,7 +79,7 @@ class StreamWidget(tkinter.Canvas):
 
 
 class App():
-    def __init__(self):
+    def __init__(self, target_win_title):
         print('Stream init')
 
         window = tkinter.Tk()
@@ -88,7 +88,7 @@ class App():
 
         self.widgets = [tkinter.Frame]
         widget = StreamWidget(window, width=500, height=400,
-                              target_win_title='Legends Of Idleon')
+                              target_win_title=target_win_title)
         widget.pack(fill='both', expand=True)
         self.widgets.append(widget)
 
@@ -104,10 +104,10 @@ class App():
         window.destroy()
 
 
-def create() -> App:
-    return App()
+def create(target_win_title) -> App:
+    return App(target_win_title=target_win_title)
 
 
 if __name__ == '__main__':
-    viewer = create()
+    viewer = create(target_win_title='Legends Of Idleon')
     viewer.show()
