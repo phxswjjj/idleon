@@ -1,9 +1,13 @@
 import tkinter
+from ctypes import windll
+
+import win32gui
+import win32ui
 from PIL import Image, ImageTk
 
 
 class StreamWidget(tkinter.Canvas):
-    def __init__(self, window, width, height, image=None):
+    def __init__(self, window, width, height, image=None, target_win_title=None):
         super().__init__(window, width=width, height=height, bg='blue')
 
         self.window = window
@@ -13,6 +17,10 @@ class StreamWidget(tkinter.Canvas):
         self.height = new_height
 
         self.bind('<Configure>', self.on_resize)
+
+        if target_win_title:
+            self.hwnd = win32gui.FindWindow(None, target_win_title)
+            image = self.capture()
 
         self.update_image(image)
 
@@ -36,6 +44,39 @@ class StreamWidget(tkinter.Canvas):
             self.photo = ImageTk.PhotoImage(image=resize_img)
             self.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
 
+    def capture(self):
+        if not self.hwnd:
+            return None
+
+        hwnd = self.hwnd
+        left, top, right, bot = win32gui.GetWindowRect(hwnd)
+        w = right - left
+        h = bot - top
+        hwndDC = win32gui.GetWindowDC(hwnd)
+        mfcDC = win32ui.CreateDCFromHandle(hwndDC)
+        saveDC = mfcDC.CreateCompatibleDC()
+        saveBitMap = win32ui.CreateBitmap()
+        saveBitMap.CreateCompatibleBitmap(mfcDC, w, h)
+        saveDC.SelectObject(saveBitMap)
+        result = windll.user32.PrintWindow(hwnd, saveDC.GetSafeHdc(), 0)
+
+        bmpinfo = saveBitMap.GetInfo()
+        bmpstr = saveBitMap.GetBitmapBits(True)
+
+        im = Image.frombuffer(
+            'RGB',
+            (bmpinfo['bmWidth'], bmpinfo['bmHeight']),
+            bmpstr, 'raw', 'BGRX', 0, 1)
+
+        win32gui.DeleteObject(saveBitMap.GetHandle())
+        saveDC.DeleteDC()
+        mfcDC.DeleteDC()
+        win32gui.ReleaseDC(hwnd, hwndDC)
+        if result:
+            return im
+        else:
+            return None
+
 
 class App():
     def __init__(self):
@@ -46,11 +87,12 @@ class App():
         self.window = window
 
         self.widgets = [tkinter.Frame]
-        widget = StreamWidget(window, width=500, height=400)
+        widget = StreamWidget(window, width=500, height=400,
+                              target_win_title='Legends Of Idleon')
         widget.pack(fill='both', expand=True)
         self.widgets.append(widget)
 
-        widget.update_image(Image.open('./resources/cat.jpg'))
+        # widget.update_image(Image.open('./resources/cat.jpg'))
 
     def show(self):
         window = self.window
