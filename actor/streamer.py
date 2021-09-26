@@ -1,3 +1,5 @@
+import threading
+import time
 import tkinter
 from ctypes import windll
 
@@ -8,14 +10,17 @@ from PIL import Image, ImageTk
 
 
 class StreamWidget(tkinter.Canvas):
-    def __init__(self, window, width, height, image=None, target_win_title=None):
+    def __init__(self, window, width, height, image=None, target_win_title=None, refresh_interval=200):
         super().__init__(window, width=width, height=height, bg='blue')
 
+        self._closing = False
         self.window = window
         new_width = self.winfo_reqwidth()
         new_height = self.winfo_reqheight()
         self.width = new_width
         self.height = new_height
+        # too small will make it impossible to close
+        self.refresh_interval = refresh_interval
 
         self.bind('<Configure>', self.on_resize)
 
@@ -23,7 +28,10 @@ class StreamWidget(tkinter.Canvas):
             self.hwnd = win32gui.FindWindow(None, target_win_title)
             image = self.capture()
 
-        self.update_image(image)
+        job = threading.Thread(target=self._refresh)
+        self.refresh_job = job
+        job.start()
+        # self.update_image(image)
 
     def on_resize(self, event):
         new_width = event.width
@@ -32,6 +40,11 @@ class StreamWidget(tkinter.Canvas):
         self.height = new_height
 
         self.update_image(self.image)
+
+    def wait_closed(self):
+        self._closing = True
+        print('stream stopping')
+        self.refresh_job.join()
 
     def update_image(self, image):
         self.image = image
@@ -42,20 +55,34 @@ class StreamWidget(tkinter.Canvas):
 
             resize_img = self.image.resize(
                 (new_width, new_height), Image.ANTIALIAS)
-            self.photo = ImageTk.PhotoImage(image=resize_img)
-            self.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
+            pimg = ImageTk.PhotoImage(image=resize_img)
+            self.create_image(0, 0, image=pimg, anchor=tkinter.NW)
+            # keep image alive
+            self.photo = pimg
 
-    def capture(self):
+    def refresh(self):
+        image = self.capture()
+        if image:
+            self.update_image(image)
+
+    def _refresh(self):
+        while(not self._closing):
+            self.refresh()
+            if self.refresh_interval > 0:
+                time.sleep(self.refresh_interval/1000)
+        print('stream stopped')
+
+    def capture(self) -> Image:
         if not self.hwnd:
             return None
 
         hwnd = self.hwnd
-        
-        l, t, r, b   = win32gui.GetClientRect(hwnd)
-        sl, st, _, _ = win32gui.GetWindowRect(hwnd)
-        cl, ct       = win32gui.ClientToScreen(hwnd, (l, t))
 
-        size     = (r - l, b - t)
+        l, t, r, b = win32gui.GetClientRect(hwnd)
+        sl, st, _, _ = win32gui.GetWindowRect(hwnd)
+        cl, ct = win32gui.ClientToScreen(hwnd, (l, t))
+
+        size = (r - l, b - t)
         position = (cl - sl, ct - st)
 
         # too small
@@ -95,7 +122,7 @@ class App():
         window.protocol("WM_DELETE_WINDOW", self.on_closing)
         self.window = window
 
-        self.widgets = [tkinter.Frame]
+        self.widgets = []
         widget = StreamWidget(window, width=500, height=400,
                               target_win_title=target_win_title)
         widget.pack(fill='both', expand=True)
@@ -107,6 +134,9 @@ class App():
 
     def on_closing(self):
         window = self.window
+        for widget in self.widgets:
+            widget.wait_closed()
+            widget.destroy()
         print('Stream close')
         window.destroy()
 
