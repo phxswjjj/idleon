@@ -8,30 +8,24 @@ import win32gui
 import win32ui
 from PIL import Image, ImageTk
 
+if __name__ == '__main__':
+    import os
+    import sys
+    sys.path.append(os.path.realpath('.'))
+from utility import win32
+
 
 class StreamWidget(tkinter.Canvas):
-    def __init__(self, window, width, height, image=None, target_win_title=None, refresh_interval=200):
+    def __init__(self, window, width, height):
         super().__init__(window, width=width, height=height, bg='blue')
 
-        self._closing = False
         self.window = window
         new_width = self.winfo_reqwidth()
         new_height = self.winfo_reqheight()
         self.width = new_width
         self.height = new_height
-        # too small will make it impossible to close
-        self.refresh_interval = refresh_interval
 
         self.bind('<Configure>', self.on_resize)
-
-        if target_win_title:
-            self.hwnd = win32gui.FindWindow(None, target_win_title)
-            image = self.capture()
-
-        job = threading.Thread(target=self._refresh)
-        self.refresh_job = job
-        job.start()
-        # self.update_image(image)
 
     def on_resize(self, event):
         new_width = event.width
@@ -40,11 +34,6 @@ class StreamWidget(tkinter.Canvas):
         self.height = new_height
 
         self.update_image(self.image)
-
-    def wait_closed(self):
-        self._closing = True
-        print('stream stopping')
-        self.refresh_job.join()
 
     def update_image(self, image):
         self.image = image
@@ -60,85 +49,65 @@ class StreamWidget(tkinter.Canvas):
             # keep image alive
             self.photo = pimg
 
-    def refresh(self):
-        image = self.capture()
-        if image:
-            self.update_image(image)
-
-    def _refresh(self):
-        while(not self._closing):
-            self.refresh()
-            if self.refresh_interval > 0:
-                time.sleep(self.refresh_interval/1000)
-        print('stream stopped')
-
-    def capture(self) -> Image:
-        if not self.hwnd:
-            return None
-
-        hwnd = self.hwnd
-
-        l, t, r, b = win32gui.GetClientRect(hwnd)
-        sl, st, _, _ = win32gui.GetWindowRect(hwnd)
-        cl, ct = win32gui.ClientToScreen(hwnd, (l, t))
-
-        size = (r - l, b - t)
-        position = (cl - sl, ct - st)
-
-        # too small
-        if size[1] < 100:
-            return None
-
-        hwndDC = win32gui.GetDC(hwnd)
-        mfcDC = win32ui.CreateDCFromHandle(hwndDC)
-        saveDC = mfcDC.CreateCompatibleDC()
-        saveBitMap = win32ui.CreateBitmap()
-        saveBitMap.CreateCompatibleBitmap(mfcDC, *size)
-        saveDC.SelectObject(saveBitMap)
-
-        saveDC.BitBlt((0, 0), size, mfcDC, position, win32con.SRCCOPY)
-        saveDC.SelectObject(saveBitMap)
-
-        bmpinfo = saveBitMap.GetInfo()
-        bmpstr = saveBitMap.GetBitmapBits(True)
-
-        im = Image.frombuffer(
-            'RGB',
-            (bmpinfo['bmWidth'], bmpinfo['bmHeight']),
-            bmpstr, 'raw', 'BGRX', 0, 1)
-
-        win32gui.DeleteObject(saveBitMap.GetHandle())
-        saveDC.DeleteDC()
-        mfcDC.DeleteDC()
-        win32gui.ReleaseDC(hwnd, hwndDC)
-        return im
-
 
 class App():
-    def __init__(self, target_win_title):
+    def __init__(self, target_win_title, refresh_interval=100):
         print('Stream init')
+
+        self._closing = False
+        # too small will make it impossible to close
+        self.refresh_interval = refresh_interval
 
         window = tkinter.Tk()
         window.protocol("WM_DELETE_WINDOW", self.on_closing)
         self.window = window
 
         self.widgets = []
-        widget = StreamWidget(window, width=500, height=400,
-                              target_win_title=target_win_title)
+        widget = StreamWidget(window, width=500, height=400)
         widget.pack(fill='both', expand=True)
         self.widgets.append(widget)
+
+        self._stream_widget = widget
+
+        if target_win_title:
+            self.hwnd = win32gui.FindWindow(None, target_win_title)
+
+        job = threading.Thread(target=self._run_refresh_stream)
+        self.refresh_job = job
+        job.start()
 
     def show(self):
         window = self.window
         window.mainloop()
 
+    def refresh_stream(self):
+        image = win32.capture(self.hwnd)
+        if image:
+            widget = self._stream_widget
+            widget.update_image(image)
+
+    def _run_refresh_stream(self):
+        while(not self._closing):
+            self.refresh_stream()
+            if self.refresh_interval > 0:
+                time.sleep(self.refresh_interval/1000)
+        print('stream stopped')
+
     def on_closing(self):
         window = self.window
+
+        self._closing = True
+        print('stream stopping')
+        self.refresh_job.join(timeout=1)
+        if self.refresh_job.is_alive():
+            print('interrupt app')
+            import os
+            os._exit(0)
+
         for widget in self.widgets:
-            widget.wait_closed()
             widget.destroy()
-        print('Stream close')
         window.destroy()
+        print('app closed')
 
 
 def create(target_win_title) -> App:
