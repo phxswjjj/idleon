@@ -48,6 +48,7 @@ def capture(hwnd) -> Image:
 if __name__ == '__main__':
     hwnd = win32gui.FindWindow(None, 'Legends Of Idleon')
     image = capture(hwnd)
+    image.save('resources/tmp.jpg')
     
     from ImageViewer import showImage
     showImage(image)

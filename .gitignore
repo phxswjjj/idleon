@@ -1,2 +1,12 @@
 # python
 __pycache__/
+
+# train data
+resources/dataset/
+
+# vscode
+.vscode/
+
+# resource
+resources/tmp.jpg
+resources/out.png
