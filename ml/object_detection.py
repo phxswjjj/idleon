@@ -1,6 +1,5 @@
 
 import cv2
-import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torchvision.models as models
@@ -61,5 +60,10 @@ if __name__ == '__main__':
     pimg = Image.open('resources/sheep-herd-shepherd-hats-dog-meadow.jpg')
     display_img = objDetection.predict(pimg)
 
-    plt.imshow(display_img)
-    plt.show()
+    display_img = np.array(display_img)
+    display_img = Image.fromarray(cv2.cvtColor(display_img, cv2.COLOR_BGR2RGB))
+    display_img = np.array(display_img)
+
+    cv2.imshow('view', display_img)
+    cv2.waitKey()
+    cv2.destroyAllWindows()
