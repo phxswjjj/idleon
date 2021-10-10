@@ -98,7 +98,7 @@ if __name__ == '__main__':
 
     RECT_COLOR = (0, 255, 0)
     framesCount = 0
-    left_top = (50, 50)
+    bottom_left = (50, 50)
     while True:
         image = capture(hwnd)
         framesCount += 1
@@ -107,7 +107,7 @@ if __name__ == '__main__':
         frame = np.array(image)
 
         fps = sw.fps(framesCount)
-        frame = cv2.putText(frame, 'FPS: ' + str(fps), left_top,
+        frame = cv2.putText(frame, 'FPS: ' + str(fps), bottom_left,
                             cv2.FONT_HERSHEY_COMPLEX, 0.7, RECT_COLOR, 2)
 
         cv2.imshow('press q to exit', frame)
