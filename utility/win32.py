@@ -8,6 +8,7 @@ import win32gui
 import win32ui
 from mss import mss
 from PIL import Image
+import mss
 
 if __name__ == '__main__':
     import os
@@ -25,10 +26,23 @@ class WindowInfo():
         self.height: int = None
         # left, top
         self.position: (int, int) = None
+        self.offset: (int, int) = None
 
     @property
     def size(self) -> (int, int):
         return (self.width, self.height)
+
+    @property
+    def left(self) -> int:
+        return self.position[0]
+
+    @property
+    def top(self) -> int:
+        return self.position[1]
+
+    @property
+    def inner_position(self) -> (int, int):
+        return tuple(map(lambda i, j: i + j, self.position, self.offset))
 
 
 def getWindowInfo(hwnd: int = None, title: str = None) -> WindowInfo:
@@ -43,21 +57,38 @@ def getWindowInfo(hwnd: int = None, title: str = None) -> WindowInfo:
     cl, ct = win32gui.ClientToScreen(hwnd, (l, t))
 
     size = (r - l, b - t)
-    position = (cl - sl, ct - st)
+    position = (sl, st)
+    offset = (cl - sl, ct - st)
 
     info = WindowInfo()
     info.width, info.height = size
     info.position = position
+    info.offset = offset
     return info
 
-# 25 fps
-def capture(hwnd) -> Image:
+
+def screenshot(left=0, top=0, width=1920, height=1080):
+    stc = mss.mss()
+    scr = stc.grab({
+        'left': left,
+        'top': top,
+        'width': width,
+        'height': height
+    })
+
+    img = np.array(scr)
+    img = cv2.cvtColor(img, cv2.IMREAD_COLOR)
+
+    return img
+
+
+def capture(hwnd, is_cv_use: bool = False) -> Image:
     if not hwnd:
         return None
 
     winInfo = getWindowInfo(hwnd)
     size = winInfo.size
-    position = winInfo.position
+    position = winInfo.offset
 
     # too small
     if size[1] < 100:
@@ -76,7 +107,7 @@ def capture(hwnd) -> Image:
     bmpinfo = saveBitMap.GetInfo()
     bmpstr = saveBitMap.GetBitmapBits(True)
 
-    im = Image.frombuffer(
+    image = Image.frombuffer(
         'RGB',
         (bmpinfo['bmWidth'], bmpinfo['bmHeight']),
         bmpstr, 'raw', 'BGRX', 0, 1)
@@ -85,11 +116,18 @@ def capture(hwnd) -> Image:
     saveDC.DeleteDC()
     mfcDC.DeleteDC()
     win32gui.ReleaseDC(hwnd, hwndDC)
-    return im
+
+    if is_cv_use:
+        image = np.array(image)
+        image = Image.fromarray(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+        image = np.array(image)
+
+    return image
 
 
 if __name__ == '__main__':
     hwnd = win32gui.FindWindow(None, 'Legends Of Idleon')
+    win32gui.SetForegroundWindow(hwnd)
     winInfo = getWindowInfo(hwnd)
 
     from .stopwatch import StopWatch
@@ -100,11 +138,14 @@ if __name__ == '__main__':
     framesCount = 0
     bottom_left = (50, 50)
     while True:
-        image = capture(hwnd)
+        # 25 fps
+        # frame = capture(hwnd, True)
+
+        # 29 fps
+        frame = screenshot(winInfo.left, winInfo.top,
+                           winInfo.width, winInfo.height)
+
         framesCount += 1
-        frame = np.array(image)
-        image = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
-        frame = np.array(image)
 
         fps = sw.fps(framesCount)
         frame = cv2.putText(frame, 'FPS: ' + str(fps), bottom_left,
