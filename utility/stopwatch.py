@@ -1,5 +1,6 @@
 from time import sleep
 from datetime import datetime, timedelta
+import math
 
 
 class StopWatch():
@@ -25,13 +26,20 @@ class StopWatch():
         t2 = self.toInstance if self.toInstance else datetime.now()
         return t2 - t1
 
+    def fps(self, framesCount: int) -> int:
+        sec = self.elapsed_sec()
+        return math.trunc(framesCount/sec)
+
 
 if __name__ == '__main__':
     sw = StopWatch()
     sw.start()
-    for _ in range(3):
+    max_times = 3
+    for i in range(max_times):
         sleep(1)
-        print('Elapsed sec:', sw.elapsed_sec())
+        print('Elapsed sec:', sw.elapsed_sec(), 'fps:', sw.fps((i + 1) * 10))
     sw.stop()
-    print('Final Elapsed sec:', sw.elapsed_sec())
 
+    sleep(1)
+    print('Final Elapsed sec:', sw.elapsed_sec(),
+          'fps:', sw.fps(max_times * 10))
