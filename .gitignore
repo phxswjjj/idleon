@@ -4,6 +4,9 @@ __pycache__/
 # train data
 resources/dataset/
 
+# debug img
+resources/fish/tmp/
+
 # vscode
 .vscode/
 

@@ -2,13 +2,29 @@
 import cv2
 import numpy as np
 import torch
+import torch.nn.functional as F
+import torchvision.datasets as datasets
 import torchvision.models as models
 import torchvision.transforms as trns
+import torchvision.transforms as transforms
 from PIL import Image
+
+if __name__ == '__main__':
+    import os
+    import sys
+
+    sys.path.append(os.path.realpath('.'))
+
+    if not __package__:
+        __package__ = 'ml'
 
 _GRAY = (218, 227, 218)
 _GREEN = (18, 127, 15)
 _WHITE = (255, 255, 255)
+
+_DATASET_DIR_PATH = r'resources\dataset'
+_MODEL_DIR_PATH = os.path.join(_DATASET_DIR_PATH, 'model')
+_PRETRAIN_MODEL_PATH = os.path.join(_MODEL_DIR_PATH, 'final_model.pth')
 
 
 def vis_bbox(image: Image, bbox, color=_GREEN, thick=1) -> Image:
@@ -21,13 +37,14 @@ def vis_bbox(image: Image, bbox, color=_GREEN, thick=1) -> Image:
 
 
 class Detection():
-    def __init__(self, model=None, threshold=0.5):
+    def __init__(self, model=None, transforms=None, threshold=0.5):
         if not model:
             model = models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
         model.eval()
         self.model = model
 
-        transforms = trns.ToTensor()
+        if not transforms:
+            transforms = trns.ToTensor()
         self.transforms = transforms
 
         self.threshold = threshold
@@ -55,9 +72,21 @@ class Detection():
 
 
 if __name__ == '__main__':
-    objDetection = Detection()
 
-    pimg = Image.open('resources/sheep-herd-shepherd-hats-dog-meadow.jpg')
+    inputSize = 224
+    transforms = trns.Compose([
+        transforms.Resize(inputSize),
+        transforms.CenterCrop(inputSize),
+        transforms.ToTensor(),
+        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+    ])
+
+    from .train_model import VGG16_model
+    model = torch.load(_PRETRAIN_MODEL_PATH)
+
+    objDetection = Detection(model=model, transforms=transforms)
+
+    pimg = Image.open('resources/tmp.jpg')
     display_img = objDetection.predict(pimg)
 
     display_img = np.array(display_img)

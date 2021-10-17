@@ -7,10 +7,12 @@ class StopWatch():
     def __init__(self):
         self.fromInstance: datetime = None
         self.toInstance: datetime = None
+        self._framesCount: int = 0
 
     def start(self) -> datetime:
         self.fromInstance = datetime.now()
         self.toInstance = None
+        self._framesCount = 0
         return self.fromInstance
 
     def stop(self) -> datetime:
@@ -26,9 +28,13 @@ class StopWatch():
         t2 = self.toInstance if self.toInstance else datetime.now()
         return t2 - t1
 
-    def fps(self, framesCount: int) -> int:
+    def fps(self, framesCount: int = None) -> int:
         sec = self.elapsed_sec()
-        return math.trunc(framesCount/sec)
+        if framesCount:
+            self._framesCount = framesCount
+        else:
+            self._framesCount += 1
+        return math.trunc(self._framesCount/sec)
 
 
 if __name__ == '__main__':
