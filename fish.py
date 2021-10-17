@@ -17,7 +17,7 @@ _RESOURCE_DIR_PATH = r'resources'
 _FISH_DIR_PATH = os.path.join(_RESOURCE_DIR_PATH, 'fish')
 _FISHTMP_DIR_PATH = os.path.join(_FISH_DIR_PATH, 'tmp')
 
-threshold = 0.8
+threshold = 0.79
 
 LastFired = datetime.now()
 FireInterval = 5
@@ -87,15 +87,17 @@ while True:
     cv2.imshow(AppTitle, image)
     key = cv2.waitKey(1)
     if key == ord('q') or key == 27 or keyboard.is_pressed('q'):
+        cv2.imwrite(os.path.join(
+            _FISH_DIR_PATH, f'fish-q.jpg'), image)
         break
 
     cur_time = datetime.now()
     dif_time = cur_time - LastFired
-    if dist and abs(max_dist-dist) < 3:
+    if dist and abs(max_dist-dist) < 2:
         dist = max_dist
         if dif_time.total_seconds() > FireInterval:
             t = None
-            if dist == 0:
+            if 114 <= dist <= 118:
                 t = 0.1
             elif 134 <= dist <= 136:
                 t = 0.2
@@ -103,7 +105,9 @@ while True:
                 t = 0.23
             elif 146 <= dist <= 155:
                 t = 0.25
-            elif 159 <= dist <= 177:
+            elif 156 <= dist <= 163:
+                t = 0.31
+            elif 164 <= dist <= 177:
                 t = 0.32
             elif 178 <= dist <= 179:
                 t = 0.33
@@ -111,36 +115,48 @@ while True:
                 t = 0.35
             elif 211 <= dist <= 215:
                 t = 0.37
-            elif 206 <= dist <= 218:
+            elif 206 <= dist <= 224:
                 t = 0.4
-            elif 219 <= dist <= 234:
+            elif 225 <= dist <= 234:
                 t = 0.41
             elif 236 <= dist <= 243:
                 t = 0.43
-            elif 245 <= dist <= 268:
+            elif 244 <= dist <= 252:
+                t = 0.44
+            elif 253 <= dist <= 268:
                 t = 0.45
-            elif 273 <= dist <= 275:
+            elif 269 <= dist <= 275:
+                t = 0.46
+            elif 276 <= dist <= 278:
+                t = 0.47
+            elif 279 <= dist <= 292:
                 t = 0.48
-            elif 276 <= dist <= 292:
-                t = 0.49
             elif 293 <= dist <= 294:
                 t = 0.5
-            elif 295 <= dist <= 297:
+            elif 295 <= dist <= 305:
+                t = 0.51
+            elif 306 <= dist <= 318:
                 t = 0.52
-            elif 297 <= dist <= 319:
+            elif 319 <= dist <= 323:
                 t = 0.53
-            elif 325 <= dist <= 333:
+            elif 324 <= dist <= 342:
+                t = 0.54
+            elif 343 <= dist <= 351:
                 t = 0.55
-            elif 340 <= dist <= 344:
-                t = 0.56
-            elif 346 <= dist <= 351:
+            elif 352 <= dist <= 359:
                 t = 0.57
-            elif dist == 355:
+            elif 360 <= dist <= 381:
                 t = 0.58
-            elif 360 <= dist <= 388:
+            elif 382 <= dist <= 388:
                 t = 0.6
-            elif 390 <= dist <= 441:    # 第二根釣竿
+            elif 389 <= dist <= 418:
+                t = 0.62
+            elif 419 <= dist <= 445:
                 t = 0.63
+            elif 446 <= dist <= 452:
+                t = 0.64
+            elif 453 <= dist <= 467:
+                t = 0.65
             if t:
                 LastFired = cur_time
                 test(t, filename=f'fish-{dist}')
