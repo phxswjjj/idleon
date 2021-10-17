@@ -1,25 +1,27 @@
+import math
 import os
 import time
 from datetime import datetime
 
 import cv2
+import keyboard
 import numpy as np
 import pyautogui
 import win32gui
 
 from utility import win32
 from utility.stopwatch import StopWatch
-import keyboard
-import math
 
 AppTitle = 'Legends Of Idleon'
+CVTitle = f'CV-{AppTitle}'
 _GREEN = (3, 252, 36)
+_WHITE = (255, 255, 255)
 _RESOURCE_DIR_PATH = r'resources'
 
 threshold = 0.8
 
 LastFired = datetime.now()
-FireInterval = 30
+FireInterval = 5
 xOffsetWidth = 400
 
 
@@ -33,35 +35,14 @@ def takeItems(hwnd, pts):
         win32gui.SetForegroundWindow(hwnd)
         pyautogui.moveTo(x=200, y=950)
         pyautogui.mouseDown(button='left')
-        for pt in pts[:2]:
+        for pt in pts[:3]:
             x, y = pt
             pyautogui.dragTo(x=x, y=y+10, duration=0.3, mouseDownUp=False)
             pyautogui.dragRel(xOffset=-xOffsetWidth, yOffset=0,
                               duration=0.3, mouseDownUp=False)
-            pyautogui.dragRel(xOffset=xOffsetWidth*2, yOffset=0,
+            pyautogui.dragRel(xOffset=xOffsetWidth*3, yOffset=0,
                               duration=0.8, mouseDownUp=False)
 
-        pyautogui.dragTo(x=200, y=950, duration=0.2, mouseDownUp=False)
-        pyautogui.mouseUp(button='left')
-
-        LastFired = datetime.now()
-
-
-def takeItem(hwnd, pos):
-    global LastFired
-    cur_time = datetime.now()
-    dif_time = cur_time - LastFired
-    if dif_time.total_seconds() > FireInterval:
-        LastFired = cur_time
-
-        win32gui.SetForegroundWindow(hwnd)
-        x, y = pos
-        pyautogui.moveTo(x=x, y=y+10)
-        pyautogui.mouseDown(button='left')
-        pyautogui.dragRel(xOffset=-xOffsetWidth, yOffset=0,
-                          duration=0.3, mouseDownUp=False)
-        pyautogui.dragRel(xOffset=xOffsetWidth*3, yOffset=0,
-                          duration=0.8, mouseDownUp=False)
         pyautogui.dragTo(x=200, y=950, duration=0.2, mouseDownUp=False)
         pyautogui.mouseUp(button='left')
 
@@ -85,6 +66,7 @@ img_target = cv2.imread(os.path.join(
 
 h, w = img_target.shape
 
+pause = False
 while True:
     image = win32.capture(hwnd)
     image = np.array(image)
@@ -99,6 +81,8 @@ while True:
     for pt in zip(*loc[::-1]):
         cv2.rectangle(image, pt, (pt[0] + w, pt[1] + h), (255, 255, 255), 1)
         if not lastPt or distance(pt, lastPt) > 2:
+            if len(pts) > 1 and abs(pt[1] - lastPt[1]) > 100:
+                continue
             lastPt = pt
             pts.append(pt)
 
@@ -107,10 +91,10 @@ while True:
     #     takeItem(hwnd, max_loc)
 
     fps = sw.fps()
-    cv2.putText(image, 'FPS: ' + str(fps), (70, 50),
-                cv2.FONT_HERSHEY_COMPLEX, 0.7, _GREEN, 2)
+    cv2.putText(image, f'FPS: {fps}, Pause: {pause}', (70, 50),
+                cv2.FONT_HERSHEY_COMPLEX, 0.7, _WHITE, 2)
 
-    cv2.imshow(AppTitle, image)
+    cv2.imshow(CVTitle, image)
     key = cv2.waitKey(1)
     if key == ord('q') or key == 27 or keyboard.is_pressed('q'):
         # image_org = cv2.cvtColor(image_org, cv2.COLOR_RGB2BGR)
@@ -118,7 +102,10 @@ while True:
         #     _RESOURCE_DIR_PATH, 'tmp2.jpg'), image_org)
         break
 
-    if len(pts) > 0:
+    if keyboard.is_pressed('s'):
+        pause = not pause
+
+    if not pause and len(pts) > 0:
         takeItems(hwnd, pts)
 
 sw.stop()
