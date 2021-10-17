@@ -1,5 +1,6 @@
 import math
 import os
+import sys
 import time
 from datetime import datetime
 
@@ -24,13 +25,20 @@ LastFired = datetime.now()
 FireInterval = 5
 xOffsetWidth = 400
 
+failCount = 0
 
-def takeItems(hwnd, pts):
+
+def isMatchFire() -> bool:
     global LastFired
     cur_time = datetime.now()
     dif_time = cur_time - LastFired
-    if dif_time.total_seconds() > FireInterval:
-        LastFired = cur_time
+    return dif_time.total_seconds() > FireInterval
+
+
+def takeItems(hwnd, pts):
+    global LastFired
+    if isMatchFire():
+        LastFired = datetime.now()
 
         win32gui.SetForegroundWindow(hwnd)
         pyautogui.moveTo(x=200, y=950)
@@ -80,9 +88,7 @@ while True:
     lastPt = None
     for pt in zip(*loc[::-1]):
         cv2.rectangle(image, pt, (pt[0] + w, pt[1] + h), (255, 255, 255), 1)
-        if not lastPt or distance(pt, lastPt) > 2:
-            if len(pts) > 1 and abs(pt[1] - lastPt[1]) > 100:
-                continue
+        if not lastPt or distance(pt, lastPt) > 300:
             lastPt = pt
             pts.append(pt)
 
@@ -106,7 +112,14 @@ while True:
         pause = not pause
 
     if not pause and len(pts) > 0:
+        failCount = 0
         takeItems(hwnd, pts)
+    elif len(pts) == 0 and isMatchFire():
+        failCount += 1
+        if failCount > 1000:
+            sys.exit()
+    else:
+        failCount = 0
 
 sw.stop()
 cv2.destroyAllWindows()
