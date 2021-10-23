@@ -2,6 +2,9 @@ import os
 from enum import Enum, unique
 
 import cv2
+import numpy as np
+from tinydb import Query, TinyDB
+from tinydb.operations import add as db_add
 
 if __name__ == '__main__':
     import os
@@ -18,10 +21,16 @@ class DetectResultType(Enum):
 
 
 class Actor:
-    def __init__(self, template, threshold=0.8):
+    def __init__(self, template, threshold=0.8, power=None):
         self.template = template
         self.threshold = threshold
         self.last_source = None
+        self.power: int = power
+
+        db = TinyDB('resources/fish/db.json', cache_size=30)
+        if power:
+            db = db.table(f'power{power}')
+        self.db = db
 
     def detect(self, source) -> (DetectResultType, (int, int)):
         result = DetectResultType.WAIT
@@ -62,6 +71,31 @@ class Actor:
         if result == DetectResultType.WAIT:
             result = DetectResultType.NG
         return (result, loc)
+
+    def lookup_t(self, dist) -> int:
+        db = self.db
+
+        query = Query()
+        results = db.search(query.dist == dist)
+        if len(results) == 0:
+            results = db.search(dist * 0.9 <= query.dist <= dist * 1.1)
+        ts = [r['t'] for r in results]
+        print(ts)
+        a = np.array(ts)
+        t = np.percentile(a, 50)
+        t = round(t, 2)
+        return t
+
+    def matched(self, t, dist):
+        db = self.db
+
+        query = Query()
+        result = db.get((query.t == t) & (query.dist == dist))
+        if not result:
+            result = {'t': t, 'dist': dist, 'count': 1}
+            db.insert(result)
+        else:
+            db.update(db_add('count', 1), doc_ids=[result.doc_id])
 
 
 if __name__ == '__main__':
