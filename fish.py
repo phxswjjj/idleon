@@ -20,6 +20,8 @@ _RESOURCE_DIR_PATH = r'resources'
 _FISH_DIR_PATH = os.path.join(_RESOURCE_DIR_PATH, 'fish')
 _FISHTMP_DIR_PATH = os.path.join(_FISH_DIR_PATH, 'tmp')
 
+threshold = 0.75
+
 LastFired = datetime.now()
 FireInterval = 4
 pre_dist = None
@@ -63,7 +65,8 @@ lt_offset.x = 0
 lt_offset.y = 0
 
 # 1-2 point
-lt_offset.x = -127
+# lt_offset.x = -127
+lt_offset.x = -131
 
 power = None
 
@@ -86,7 +89,7 @@ def check_pts_position() -> bool:
 
     x = 8
     for y in range(24):
-        if image[y+15][x] > 50:
+        if image[y+15][x] > 100:
             print(f'PTS verify fail: {(x, y+15)}={image[y+15][x]}')
             return False
 
@@ -94,6 +97,20 @@ def check_pts_position() -> bool:
 
 
 check_pts_result = check_pts_position()
+if not check_pts_result:
+    image = win32.screenshot(*left_top, width, height)
+    image = np.array(image)
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+
+    if image[70][12] == image[70][30] == image[70][65] == 210:
+        print('ready to fish')
+        click_x, click_y = left_top
+        click_x += 100
+        click_y += 30
+        pyautogui.click(click_x, click_y)
+        sleep(1)
+        # try again
+        check_pts_result = check_pts_position()
 
 
 def fetch_fish_area():
@@ -142,7 +159,7 @@ while True:
 
     # 計算誤差
     if max_dist:
-        offset_dist = int((max_dist - min_dist)/13)
+        offset_dist = int((max_dist - min_dist)/12)
         if offset_dist > 10:
             offset_dist = 10
 
@@ -153,7 +170,7 @@ while True:
         pre_dist = dist
         dist = max_dist - int(img_ball.shape[1]/2)
         if dif_time.total_seconds() > FireInterval:
-            print(f'dist={pre_dist}, min_dist={min_dist}, max_dist={max_dist}')
+            print(f'dist={pre_dist}, min_dist={min_dist}, max_dist={max_dist}, offset_dist={offset_dist}')
             t = fisher.lookup_t(dist=dist)
             if t:
                 LastFired = cur_time
