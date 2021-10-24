@@ -27,7 +27,7 @@ class Actor:
         self.last_source = None
         self.power: int = power
 
-        db = TinyDB('resources/fish/db.json', cache_size=30)
+        db = TinyDB('resources/fish/db.json')
         if power:
             db = db.table(f'power{power}')
         self.db = db
@@ -58,10 +58,13 @@ class Actor:
         sw = StopWatch()
         sw.start()
 
+        source_tmp = None
         execute_time = 0
         while execute_time < 1 or sw.elapsed_sec() < timeout:
             execute_time += 1
             source = fetch()
+            if execute_time == 1:
+                source_tmp = source
             r, l = self.detect(source)
             if r == DetectResultType.OK:
                 result = r
@@ -70,6 +73,7 @@ class Actor:
 
         if result == DetectResultType.WAIT:
             result = DetectResultType.NG
+            self.last_source = source_tmp
         return (result, loc)
 
     def lookup_t(self, dist) -> int:
@@ -78,12 +82,11 @@ class Actor:
         query = Query()
         results = db.search(query.dist == dist)
         if len(results) == 0:
-            results = db.search(dist * 0.9 <= query.dist <= dist * 1.1)
-        ts = [r['t'] for r in results]
-        print(ts)
-        a = np.array(ts)
-        t = np.percentile(a, 50)
-        t = round(t, 2)
+            results = db.search((dist * 0.9 <= query.dist)
+                                & (query.dist <= dist * 1.1))
+        ts = np.sum([r['t'] * r['count'] for r in results])
+        cnt = np.sum([r['count'] for r in results])
+        t = round(ts/cnt, 2)
         return t
 
     def matched(self, t, dist):
