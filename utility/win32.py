@@ -41,8 +41,26 @@ class WindowInfo():
         return self.position[1]
 
     @property
+    def right(self) -> int:
+        return self.position[0] + self.width
+
+    @property
+    def bottom(self) -> int:
+        return self.position[1] + self.height
+
+    def is_inner(self, x: int, y: int) -> bool:
+        return self.left <= x <= self.right and self.top <= y <= self.bottom
+
+    @property
     def inner_position(self) -> (int, int):
         return tuple(map(lambda i, j: i + j, self.position, self.offset))
+
+    @property
+    def width_height_ratio(self) -> float:
+        return self.width / self.height
+
+    def scale_size_fit_width(self, width: int) -> (int, int):
+        return int(width * self.width_height_ratio), width
 
 
 def getWindowInfo(hwnd: int = None, title: str = None) -> WindowInfo:
