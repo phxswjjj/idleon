@@ -80,6 +80,21 @@ def convert_full_image_to_small_image():
         os.remove(full_image_path)
 
 
+def convert_small_image_to_final_image():
+    small_image_names = os.listdir(_SMALL_IMAGE_DIR_PATH)
+
+    for small_image_name in small_image_names:
+        final_image_path = os.path.join(_FINAL_IMAGE_DIR_PATH, small_image_name)
+        if os.path.exists(final_image_path):
+            continue
+        small_image_path = os.path.join(_SMALL_IMAGE_DIR_PATH, small_image_name)
+        small_image = cv2.imread(small_image_path)
+
+        final_image = cv2.cvtColor(small_image, cv2.COLOR_RGB2GRAY)
+        final_image = cv2.GaussianBlur(final_image, (5, 5), 0)
+        final_image = cv2.Canny(final_image, threshold1=100, threshold2=150)
+        cv2.imwrite(final_image_path, final_image)
+
 if __name__ == '__main__':
     if not os.path.isdir(_IMAGE_OUTPUT_DIR_PATH):
         os.mkdir(_IMAGE_OUTPUT_DIR_PATH)
@@ -93,5 +108,7 @@ if __name__ == '__main__':
     output_full_image()
 
     convert_full_image_to_small_image()
+
+    convert_small_image_to_final_image()
 
     print('done')
