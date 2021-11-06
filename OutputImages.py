@@ -19,8 +19,8 @@ def output_full_image():
             or not os.path.exists(_LABELS_RAWDATA_PATH):
         return
 
-    images = np.load(_IMAGES_RAWDATA_PATH, allow_pickle=True)[1:-1]
-    labels = np.load(_LABELS_RAWDATA_PATH, allow_pickle=True)[1:-1]
+    images = np.load(_IMAGES_RAWDATA_PATH, allow_pickle=True)[1:-10]
+    labels = np.load(_LABELS_RAWDATA_PATH, allow_pickle=True)[1:-10]
     print(f'raw images count: {len(images)}')
 
     batch_id = (datetime.now() - datetime(2021, 10, 10)).total_seconds()

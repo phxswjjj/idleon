@@ -1,9 +1,11 @@
 import os
 import time
+from datetime import datetime
+import shutil
 
 import cv2
 from fastai.vision.all import (ImageDataLoaders, cnn_learner, error_rate,
-                               get_image_files, resnet18)
+                               get_image_files, resnet18, load_learner)
 
 _RESOURCE_DIR_PATH = r'resources'
 _RAW_DIR_PATH = os.path.join(_RESOURCE_DIR_PATH, r'dataset\raw')
@@ -19,8 +21,12 @@ def run():
     fnames = get_image_files(_FINAL_IMAGE_DIR_PATH)
     dls = ImageDataLoaders.from_path_func(
         _FINAL_IMAGE_DIR_PATH, fnames, label_func, bs=40, num_workers=0)
+
     learn = cnn_learner(dls, resnet18, metrics=error_rate)
-    print('Loaded')
+    if os.path.exists(_EXPORT_PATH):
+        learn = cnn_learner(dls, resnet18, metrics=error_rate, path=_EXPORT_PATH)
+    else:
+        learn = cnn_learner(dls, resnet18, metrics=error_rate)
 
     learn.fine_tune(4, base_lr=1.0e-02)
     print('Fine tuned')
@@ -38,5 +44,14 @@ def run():
     print(test)
 
 
+def archive_final():
+    parent_dir = os.path.abspath(os.path.join(_FINAL_IMAGE_DIR_PATH, '..'))
+    batch_id = int((datetime.now() - datetime(2021, 10, 10)).total_seconds())
+    shutil.move(_FINAL_IMAGE_DIR_PATH,
+                os.path.join(parent_dir, f'final-{batch_id}'))
+
+
 if __name__ == '__main__':
     run()
+
+    archive_final()
