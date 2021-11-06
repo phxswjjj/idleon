@@ -7,6 +7,7 @@ from fastai.vision.all import (ImageDataLoaders, cnn_learner, error_rate,
 
 _RESOURCE_DIR_PATH = r'resources'
 _RAW_DIR_PATH = os.path.join(_RESOURCE_DIR_PATH, r'dataset\raw')
+_EXPORT_PATH = os.path.join(_RESOURCE_DIR_PATH, r'dataset\export.pkl')
 _TEST_IMAGE_PATH = os.path.join(_RESOURCE_DIR_PATH, r'catch-test.png')
 
 _IMAGE_OUTPUT_DIR_PATH = os.path.join(_RAW_DIR_PATH, r'lmb')
@@ -26,7 +27,7 @@ def run():
     learn.fine_tune(4, base_lr=1.0e-02)
     print('Fine tuned')
 
-    learn.export()
+    learn.export(os.path.abspath(_EXPORT_PATH))
     print('Exported')
 
     start_time = time.time()
