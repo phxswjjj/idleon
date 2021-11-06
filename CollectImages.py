@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+from time import sleep
 
 import cv2
 import numpy as np
@@ -10,7 +11,8 @@ from utility import win32
 
 _RESOURCE_DIR_PATH = r'resources'
 _RAW_DIR_PATH = os.path.join(_RESOURCE_DIR_PATH, r'dataset\raw')
-_RAW_DATA_PATH = os.path.join(_RAW_DIR_PATH, 'raw.npy')
+_IMAGES_RAWDATA_PATH = os.path.join(_RAW_DIR_PATH, 'images.npy')
+_LABELS_RAWDATA_PATH = os.path.join(_RAW_DIR_PATH, 'labels.npy')
 _LMB_KEYCODE = 0x01
 
 AppTitle = 'Legends Of Idleon'
@@ -24,13 +26,17 @@ winInfo: win32.WindowInfo = win32.getWindowInfo(hwnd=hwnd)
 
 def get_traindata():
     images = []
-    if os.path.isfile(_RAW_DATA_PATH):
-        images = list(np.load(_RAW_DATA_PATH, allow_pickle=True))
-    return images
+    labels = []
+    if os.path.isfile(_IMAGES_RAWDATA_PATH):
+        images = list(np.load(_IMAGES_RAWDATA_PATH, allow_pickle=True))
+    if os.path.isfile(_LABELS_RAWDATA_PATH):
+        labels = list(np.load(_LABELS_RAWDATA_PATH, allow_pickle=True))
+    return images, labels
 
 
-def save_data(images):
-    np.save(_RAW_DATA_PATH, images)
+def save_data(images, labels):
+    np.save(_IMAGES_RAWDATA_PATH, images)
+    np.save(_LABELS_RAWDATA_PATH, labels)
 
 
 def wait_mouse_click() -> bool:
@@ -48,19 +54,25 @@ def wait_mouse_click() -> bool:
 
 
 if __name__ == '__main__':
+    images, labels = get_traindata()
+
     # reset
     wapi.GetAsyncKeyState(_LMB_KEYCODE)
-
-    images = get_traindata()
+    if not wait_mouse_click():
+        print('Error: Mouse not clicked.')
+        exit()
 
     while True:
-        if not wait_mouse_click():
-            break
         pos = wapi.GetCursorPos()
-        print(datetime.now(), 'LMB click', pos)
         if not winInfo.is_inner(*pos):
-            print('out of bound')
+            print('mouse out of bound')
+            sleep(1)
             continue
+        is_q = wapi.GetAsyncKeyState(ord('Q')) & 0x8000
+        if is_q:
+            cv2.destroyAllWindows()
+            break
+
         image = win32.screenshot(*winInfo.position, *winInfo.size)
         image = np.array(image)
         # image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
@@ -68,10 +80,16 @@ if __name__ == '__main__':
         # image = cv2.Canny(image, threshold1=100, threshold2=150)
 
         images.append(image)
+        is_click = wapi.GetAsyncKeyState(_LMB_KEYCODE) & 0x8000
+        if is_click:
+            labels.append('lmb')
+        else:
+            labels.append('na')
+        sleep(0.1)
 
         display_img = cv2.resize(
             image, winInfo.scale_size_fit_width(width=400))
         cv2.imshow(AppTitle, display_img)
         cv2.waitKey(1)
 
-    save_data(images)
+    save_data(images, labels)

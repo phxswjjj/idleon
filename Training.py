@@ -7,14 +7,12 @@ from fastai.vision.all import (ImageDataLoaders, cnn_learner, error_rate,
 
 _RESOURCE_DIR_PATH = r'resources'
 _RAW_DIR_PATH = os.path.join(_RESOURCE_DIR_PATH, r'dataset\raw')
+_FINAL_IMAGE_DIR_PATH = os.path.join(_RESOURCE_DIR_PATH, r'dataset\final')
 _EXPORT_PATH = os.path.join(_RESOURCE_DIR_PATH, r'dataset\export.pkl')
 _TEST_IMAGE_PATH = os.path.join(_RESOURCE_DIR_PATH, r'catch-test.png')
 
-_IMAGE_OUTPUT_DIR_PATH = os.path.join(_RAW_DIR_PATH, r'lmb')
-_FINAL_IMAGE_DIR_PATH = os.path.join(_IMAGE_OUTPUT_DIR_PATH, r'final')
 
-
-def label_func(x): return x.parent.parent.name
+def label_func(x): return x.parent.name
 
 
 def run():
