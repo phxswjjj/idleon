@@ -14,7 +14,7 @@ from actor.fisher import Actor, DetectResultType
 from utility import win32
 from utility.stopwatch import StopWatch
 
-AppTitle = 'Legends Of Idleon'
+AppTitle = 'BlueStacks'
 _GREEN = (3, 252, 36)
 _RESOURCE_DIR_PATH = r'resources'
 _FISH_DIR_PATH = os.path.join(_RESOURCE_DIR_PATH, 'fish')
@@ -59,25 +59,28 @@ h, w = img_target.shape
 def lt_offset(): return None
 
 
-# 1-1 poist
 lt_offset.x = 0
-# lt_offset.x = 17
 lt_offset.y = 0
+
+# 1-1 poist
+lt_offset.x = 66
+lt_offset.y = 4
 
 # 1-2 point
 # lt_offset.x = -127
 # lt_offset.x = -131
-lt_offset.x = -128
+# lt_offset.x = -128
 
 # 2-3
 # lt_offset.x = -496
-lt_offset.x = -495
+# lt_offset.x = -495
 
 power = None
 
 left_top = (773 + lt_offset.x, 496 + lt_offset.y)
 right_bottom = (1387 + lt_offset.x, 572 + lt_offset.y)
 width, height = right_bottom[0] - left_top[0], right_bottom[1] - left_top[1]
+
 
 img_ball = cv2.imread(os.path.join(
     _RESOURCE_DIR_PATH, 'fish-ball.jpg'), 0)
